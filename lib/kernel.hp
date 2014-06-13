@@ -1,0 +1,24 @@
+;;; HISP Standard Library - kernel.hp
+;;;
+;;;   Some language basic util support.
+
+
+;;; +dispatch
+;;;
+(define (+dispatch x y)
+  (define (make-default-chain)
+    (list (cons (fixnum? . fixnum?) +)
+          (cons (fixnum? . float?)  +)
+	  (cons (float?  . fixnum?) +)
+	  (cons (float?  . float?)  +)
+	  (cons (vector? . vector?) vector-plus)))
+  (define (drive-loop lst)
+    (if (null? lst)
+      (error "Cannot handle ~A + ~A" x y) 
+      (let ((p1 (caaar lst))
+            (p2 (cdaar lst))
+	    (proc (cadar lst)))
+	 (if (and (p1 x) (p2 y))
+	   (proc p1 p2)
+	   (drive-loop (cdr lst))))))
+  (drive-loop (append (make-default-chain) (current-dispatch-chain))))

@@ -1,0 +1,5 @@
+(define (map proc list1 . listn))
+
+(define (for-each proc list1 . listn)
+	())
+

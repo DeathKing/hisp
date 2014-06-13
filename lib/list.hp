@@ -1,0 +1,16 @@
+;;; MAP
+;;; 
+;;;
+(define (map proc lst)
+	(if (null? lst)
+		'()
+		(cons (proc (car lst))
+          (map proc (cdr lst))))))
+
+;;; FOR-EACH
+;;;
+;;;
+(define (for-each proc lst)
+  (if (null? lst)
+    '()
+    (for-each proc (cdr lst))))
