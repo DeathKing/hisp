@@ -15,7 +15,7 @@ static HObject token;
 
 static inline int is_separator(int c)
 {
-    return EOF == c || isspace(c) || '(' == c || ')' == c || '"' == c;
+    return (EOF == c || isspace(c) || c == '(' || c == ')'  || c == '"');
 }
 
 /*
@@ -73,10 +73,12 @@ OBJECT read_number(char c, int sign, FILE *port)
   return c2h_number(number * sign);
 }
 
-void read_comment(FILE *port) {
-  int c = fgetc(port);
-  while (c != '\n' && c != EOF)
-    c = fgetc(port);
+static inline void read_comment(FILE *port)
+{
+    int c = fgetc(port);
+
+    while (c != '\n' && c != EOF)
+        c = fgetc(port);
 }
 
 OBJECT read_character(FILE *port)
@@ -140,12 +142,9 @@ OBJECT read_string(FILE *port)
   return string_new(buffer);
 }
 
-/* Read S-exp
- * Tokenizor and parser.
- */
-HToken read_object(FILE *port)
-{
 
+HToken read_token(FILE *port)
+{
     int c;
 
 tail_loop:
@@ -154,7 +153,7 @@ tail_loop:
     //printf("Process char:%c\n", c);
 
     if (EOF == c) {
-      return TEOF;  
+        return TEOF;  
     } else if (is_delimiter(c)) {
         goto tail_loop;  
     } else if ('\n' == c) {
@@ -196,10 +195,10 @@ tail_loop:
 
         /* test if it is #t or #f */
         if (is_delimiter(c2)) {
-            if (c1 == 't') {
+            if (c1 == 't' || c1 == 'T') {
                 token = Qtrue;
                 return TBool;
-            } else if (c1 == 'f') {
+            } else if (c1 == 'f' || c1 == 'F') {
                 token = Qfalse;
                 return TBool;
             } else {
@@ -208,29 +207,15 @@ tail_loop:
             }
         }
 
+        /* read vector */
         if (c1 == '(') {
-
+            token = read_vector(port)
+            return TVector;
         } else if (c1 == '\\') {
+            char buf[32];
 
         } else {
             /* bad_thing_here */
-        }
-
-          switch (c1) {
-            /* #t */
-            case 't':
-                token = Qtrue;
-                return TT_BOOL;
-            case 'f':
-                token = Qfalse;
-                return TT_BOOL;
-            case '\\':
-                token = read_character(port);
-                return TT_HCHAR;
-            default :
-              fprintf(stderr, "unexpected token '%c'.\n", c);
-              exit(1);
-          }
         }
 
     } else if (c == '"') {
@@ -264,7 +249,44 @@ tail_loop:
         
 }
 
+#define HISP_TOKENSTACK_SIZE
 
+HObject parse(FILE *port)
+{
+    /* stack cointer */
+    int sp = 0;
+
+    HToken tk;
+
+    HObject temp = Qnull;
+    HObject sub;
+
+    HObject tk_stack[HISP_TOKENSTACK_SIZE];
+
+    switch (tk) {
+        /* self-evaluate token it's it self*/
+        case TBool:   case TSymbol:    case TNumber:
+        case TString: case TCharacter: case TIdentifier:
+            return token;
+            break;
+        case TEOF:
+            return Qeof;
+            break;
+    }
+
+    /* s-exp */
+    if (tk == TOpenParen) {
+        while ((tk = read_token(port)) != TCloseParen) {
+            if (tk == TEOF) {
+                return hp_error(SYNTAX_ERROR);
+            } else if (tk == TOpenParen) {
+                ungetc('(', port);
+                    sub = parse(port);
+                    stack[sp++] = sub;
+            }
+        }
+    }
+}
 
 
 OBJECT parse(FILE *port)
@@ -329,8 +351,19 @@ OBJECT parse(FILE *port)
 
 }
 
-/* recive a string */
-OBJECT hp_parse(VALUE exp)
+HObject hp_read(HObject port)
 {
+    /* Type Check */
+    if (!HPORT_P(port) || HTEST(hp_input_port_p(port))) 
+        return hp_error(RUNTIME_ERROR, "port isn't a valid input port!");
 
+    FILE *fport = HPORT(port)->cptr;
+
+    
+}
+
+HObject hp_write(HObject exp, HObject port)
+{
+    /* valid output port check */
+    
 }
