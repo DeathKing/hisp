@@ -13,6 +13,20 @@ void exp_display(OBJECT);
 static OBJECT token;
 static HObject token;
 
+#define MAX_CNBIND_NAMESIZE 30
+
+typedef struct hp_charname_binding HCharnameBinding;
+
+struct hp_charname_binding {
+    char name[MAX_CNBIND_NAMESIZE + 1];
+    char binding;
+};
+
+static HCharnameBinding _cnbinding[] {
+    {"space",    ' '},
+    {"newline",  '\n'}
+}
+
 static inline int is_separator(int c)
 {
     return (EOF == c || isspace(c) || c == '(' || c == ')'  || c == '"');
@@ -58,19 +72,29 @@ OBJECT read_float(int integer, FILE *port)\
   return float_new(integer + number * 1.0 / i);
 }
 
-OBJECT read_number(char c, int sign, FILE *port)
+HObject read_number(char c, int sign, FILE *port)
 {
-  int number = c - '0';
-  int digit;
-  while (isdigit(digit = fgetc(port))) {
-    number = number * 10 + digit - '0';
-  }
+    int  digit;
+    long number = c - '0';
 
-  if (digit == '.')
-    return read_float(number, port);
+    /* Integers */
+    while (isdigit(digit = fgetc(port))) {
+        number = number * 10 + digit - '0';
+    }
 
-  ungetc(digit, port);
-  return c2h_number(number * sign);
+    if (is_delimiter(digit)) {
+        /* FIXME: Fixnum cast to Bignum.
+         * if (number > FIXNUM_MAX || number < FIXNUM_MIN) {
+         *   LONG2BIG(number);
+         * }
+         */
+        return LONG2FIX(number * sign);
+    } else if (digit == '.') {
+        return read_float(number * sign, port);
+    } else {
+        /* FIXME: more specific error information. */
+        return hp_error("Syntax error!");
+    }
 }
 
 static inline void read_comment(FILE *port)
@@ -127,60 +151,96 @@ OBJECT read_id(int c, FILE *port)
 }
 
 
-OBJECT read_string(FILE *port)
+#define HPARSE_RDSTR_BUFFSIZE 128
+
+HObject read_string(FILE *port)
 {
   char buffer[BUFFER_SIZE];
-  int i = 0;
-  int c = fgetc(port);
+  int  i = 0;
+  int  c1, c2 = fgetc(port);
 
-  while (i < BUFFER_SIZE - 2 && c != EOF && c != '"') {
-    buffer[i++] = c;
-    c = fgetc(port);
+  while (i < BUFFER_SIZE - 2 && c2 != EOF && c2 != '"') {
+    /* escape */
+    if (c2 == '\\') {
+        c1 = fgetc(port);
+        switch (c1) {
+            case '0': /* NULL String */
+            case 'n':
+            case 'r':
+            case 'b':
+            case '\\':
+            case '"':
+
+        }
+    }
+    buffer[i++] = c2;
+    c2 = fgetc(port);
   }
 
   buffer[i + 1] = '\0';
   return string_new(buffer);
 }
 
+#define SIGN_POSITIVE (1)
+#define SIGN_NAGETIVE (-1)
 
+/*  read_token [C API]
+ *
+ *  read_token scan the port and read the token(token variable will be
+ *  assigned) and this function will return a HToken to indicate which type
+ *  the token is.
+ *
+ */
 HToken read_token(FILE *port)
 {
     int c;
 
 tail_loop:
 
+    /* FIXME: This function can deal with non-stream variable also. */
     c = fgetc(port);
-    //printf("Process char:%c\n", c);
 
     if (EOF == c) {
         return TEOF;  
     } else if (is_delimiter(c)) {
-        goto tail_loop;  
-    } else if ('\n' == c) {
-        // line++
+        /* FIXME: Should add line count. */
         goto tail_loop;
-    } else if ('\t' == c || '\r' == c) {
-        goto tail_loop;
-    } else if (';' == c) {
+    } else if (c == ';') {
+        /* FIXME: Add hook to process comment. */
         read_comment(port);
         goto tail_loop;
-    } else if ('0' <= c && c <= '9') {
-        token = read_number(c, 1, port);
-        return TNumber;
-    } else if ('-' == c || '+' == c) {
+    } else if (c == '.') {
         int ch = fgetc(port);
-        int sign = (c == '-') ? '-1' : 1;
-        // A number begins with a sign
+        if (is_delimiter(ch)) {
+            return TDot;
+        } else if (isdigit(ch)) {
+            token = read_number(ch, SIGN_POSITIVE, port);
+            return token;
+        } else if (is_subsequent(ch)) {
+            token = read_id(ch, port);
+            return token
+        } else {
+            return hp_error();
+        }
+    } else if (c >= '0' && c <= '9') {
+        /* FIXME: Only deal radix 10 now. */
+        token = read_number(c, SIGN_POSITIVE, port);
+        return TNumber;
+    } else if (c == '-' || c == '+') {
+        int ch = fgetc(port);
+        int sign = (c == '-') ? SIGN_NAGETIVE : SIGN_POSITIVE;
+        /* A number begins with a sign */
         if (isdigit(ch)) {
             token = read_number(ch, sign, port);
             return TNumber;
         } else if (is_delimiter(ch)) {
-            // single '+' or '-' char
+            /* single '+' or '-' char */
             ungetc(ch, port);
+            /* FIXME: alloc a new id */
             token = id_new_char(c);
             return TIdentifier;
         } else {
-            // a indentifier begins with '+' or '-'
+            /* a indentifier begins with '+' or '-' */
             ungetc(ch, port);
             token = read_id(ch, port);
             return TIdentifier;
@@ -189,21 +249,22 @@ tail_loop:
         token = read_id(c, port);
         return TIdentifier;
     } else if ('#' == c) {
-        
+
+        /* FIXME: #!defautl support (MIT-Scheme feature) */
+
         int c1 = fgetc(port);
         int c2 = fgetc(port);
 
-        /* test if it is #t or #f */
         if (is_delimiter(c2)) {
+            /* c2 should put to stream. */
+            ungetc(c2, port);
+            /* decide is #t or #f */
             if (c1 == 't' || c1 == 'T') {
                 token = Qtrue;
                 return TBool;
             } else if (c1 == 'f' || c1 == 'F') {
                 token = Qfalse;
                 return TBool;
-            } else {
-                /* none should return*/
-                ungetc(c1, port);
             }
         }
 
@@ -212,8 +273,10 @@ tail_loop:
             token = read_vector(port)
             return TVector;
         } else if (c1 == '\\') {
-            char buf[32];
-
+            char kar = read_namechar(port);
+            /* alloc new char */
+            token = hp_new_char(kar);
+            return TCharacter; 
         } else {
             /* bad_thing_here */
         }
@@ -222,49 +285,36 @@ tail_loop:
         token = read_string(port);
         return TString;
     } else if (c == '\'') {
-
+        token = read_symbol(port);
+        return TSymbol;
     } else if (c == '(') {
         return TOpenParen;
     } else if (c == ')') {
         return TCloseParen;
     }
-
-        case '"': token = read_string(port);
-                  return TT_HSTR;
-        case '\'': {
-          int i = fgetc(port);
-          int j = fgetc(port);
-          if (i == '(' && j == ')') {
-            token = Qnil;
-            return TT_BOOL;
-          } else {
-            ungetc(j, port);
-            ungetc(i, port);
-            token = Qfalse;
-            return TT_BOOL;
-          }
-        }
-        case '(': return TT_OPEN_PAREN;
-        case ')': return TT_CLOSE_PAREN;
-        
 }
 
-#define HISP_TOKENSTACK_SIZE
+
+#define HPARSE_STACKSIZE 64
 
 HObject parse(FILE *port)
 {
-    /* stack cointer */
-    int sp = 0;
+
+    /* elements count before this token.
+     *
+     * a nagetive value indicate there's alreay a dotted value
+     * any new dotted value are Ill-formed.
+     */
+    int cnt = 0;
+
 
     HToken tk;
+    HObject res = hp_new_pair(Qnull, Qnull);
+    HObject tmp = res;
 
-    HObject temp = Qnull;
-    HObject sub;
-
-    HObject tk_stack[HISP_TOKENSTACK_SIZE];
-
+    /* if tk is atom, just return */
     switch (tk) {
-        /* self-evaluate token it's it self*/
+        /* self-evaluate token it's it self */
         case TBool:   case TSymbol:    case TNumber:
         case TString: case TCharacter: case TIdentifier:
             return token;
@@ -274,93 +324,72 @@ HObject parse(FILE *port)
             break;
     }
 
-    /* s-exp */
+    /* process s-exp */
     if (tk == TOpenParen) {
-        while ((tk = read_token(port)) != TCloseParen) {
-            if (tk == TEOF) {
-                return hp_error(SYNTAX_ERROR);
-            } else if (tk == TOpenParen) {
-                ungetc('(', port);
-                    sub = parse(port);
-                    stack[sp++] = sub;
+
+        if ((tk = read_token(port)) == TCloseParen) {
+            return Qnull;
+        }
+
+        while (tk != TCloseParen) {
+
+            switch (tk) {
+                case TEOF:
+                    return hp_error(SYNTAX_ERROR, "Parenthesis unclosed.");
+                    break;
+                case TBool:   case TSymbol:    case TNumber:
+                case TString: case TCharacter: case TIdentifier:
+                    cnt++;
+                    HPAIR(tmp)->car = token;
+                    HPAIR(tmp)->cdr = hp_new_null_pair();
+                    tmp = HPAIR(tmp)->cdr;
+                    break;
+                case TDot:
+                    if (cnt > 0) {
+                        /* set cnt to a nagetive number to indicate there's
+                         * already a dotted value.
+                         */
+                        cnt = -0x0130450E;
+                        HPAIR(tmp)->cdr = token;
+                    } else {
+                        return hp_error(SYNTAX_ERROR, "Ill-formed dotted value.");
+                    }
+                    break;
             }
         }
+
+        /* meet a close paren. */
+        return res;
     }
+
 }
 
-
-OBJECT parse(FILE *port)
+/*
+ * call-seq:
+ *   (read port)
+ *
+ * return a sexp (form by pairs.)
+ */
+HObject hp_read(HObject *port)
 {
-    /* stack counter */
+
+    /* stack cointer */
     int sp = 0;
 
-    OBJECT tmp = Qnil, sub;
 
-    /* FIXME: does 60 is too small for some expression? */
-    /* FIXME: Introduce the list-stack */
-    OBJECT stack[60];
+    HObject tk_stack[HISP_TOKENSTACK_SIZE];
 
-    TOKEN_TYPE tk = read_object(port);
-
-
-    switch (tk) {
-        case TT_BOOL:
-        case TT_SYMBOL:
-        case TT_NUMBER:
-        case TT_STRING:
-        case TT_CHARACTER:
-        case TT_IDENTIFIER:
-            return token;
+    /* FIXME: port readable check */
+    if (!HPORT_P(port)) {
+        return hp_error(RUNTIME_ERROR, "port isn'a valid port.")
     }
 
-    /* FIXME: more developer/user friendly eof check. */
-    if (tk == TT_EOF) {
-      return Qeof;
-    }
+    /* get real pointer */
+    FILE *cptr = HPORT(port)->cptr;
 
-    /* parse sub s-exp */
-    if (tk == TT_OPEN_PAREN) {
-        while ((tk = read_object(port)) != TT_CLOSE_PAREN) {
-            if (tk == TT_EOF) {
-                hp_error(RUNTIME_ERROR, "Too early close.");
-                return Qfalse;
-            } else if (tk == TT_OPEN_PAREN) {
-                ungetc('(', port);
-                sub = parse(port);
-                /* exp_display(sub); */
-                stack[sp++] = sub;
-            } else {
-                stack[sp++] = token;
-            }
-        }
-        while (sp--) {
-            tmp = cons(stack[sp], tmp);
-        }
-        return tmp;
-    } else if (tk == TT_CLOSE_PAREN) {
-        while (sp--) {
-            tmp = cons(stack[sp], tmp);
-        }
-        return tmp;
-    } else if (tk == TT_EOF) {
-        return Qeof;
-    } else {
-        hp_error(RUNTIME_ERROR, "unkown lexical unit.");
-        return Qfalse;
-    }
-
+    return parse(cptr);
 }
 
-HObject hp_read(HObject port)
-{
-    /* Type Check */
-    if (!HPORT_P(port) || HTEST(hp_input_port_p(port))) 
-        return hp_error(RUNTIME_ERROR, "port isn't a valid input port!");
-
-    FILE *fport = HPORT(port)->cptr;
-
-    
-}
 
 HObject hp_write(HObject exp, HObject port)
 {
