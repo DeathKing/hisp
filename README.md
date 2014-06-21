@@ -1,6 +1,6 @@
 # HISP
 
-Hisp is a simple copy of MIT-Scheme, implemented by C. The very idea to make such a implemnt is to interpreter the code I worte in Scheme(especially mit-scheme) of HIT Data Sturcture course. But, lexically Hisp also can be considered as:
+Hisp is interpreter implemented by C, which meanwhile is also a simple copy of MIT-Scheme. The very idea to make such a implemntation is to interpreter the code I worte in Scheme(especially mit-scheme) of [HIT Data Sturcture course](https://github.com/DeathKing/Hit-DataStructure-On-Scheme). But lexically, Hisp also can be considered as:
 
 + Hit mIt-Scheme inPlementation
 + Hit Iterator Symbolic Processor
@@ -8,12 +8,15 @@ Hisp is a simple copy of MIT-Scheme, implemented by C. The very idea to make suc
 
 # Standard
 
-Our goal is totally obey the R^5RS, but Hisp only suit a subset of that standard. We also try to make Hisp more powerful by achieve SRIF. Some modarn language feature such as *default argument* will be added also.
-
+Our goal is to make Hisp totally follow the Revised^5 Report on the Algorithmic Language Scheme(aka. R^5RS), but Hisp only suit a subset of that standard. We also try to make Hisp more powerful by implement Scheme Requests for Implementation(aka. SRFI). Some modern programming language features such as *default argument* will be added also.
 
 # Features
 
-Paramter with default value can be easily deal with in Hisp by introduce `[]`, here is a sample:
+## Default parameters
+
+> **This feature hasn't finished yet.**
+
+Parameters with default value can be easily dealed with in Hisp by introduce `[]`, here is a sample:
 
 ```scheme
 ;; in mit-scheme
@@ -28,12 +31,12 @@ Paramter with default value can be easily deal with in Hisp by introduce `[]`, h
 
 ;; both will result as:
 (plus 5)   ;---> 6
-(plus 5 2) ;---> 7 
-
+(plus 5 2) ;---> 7
 ```
 
-(define (a (b 1))
-  (something))
+# Contributing
+
+Take it easy, guys, just `(and (fork) (send 'pull-request))`.
 
 # License
 
