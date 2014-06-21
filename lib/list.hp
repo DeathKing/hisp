@@ -1,6 +1,28 @@
-;;; MAP
-;;; 
+;;; LENGTH
 ;;;
+;;;
+(define (length lst)
+	(let loop ((l lst) (cnt 0))
+		(if (null? l)
+			cnt
+			(loop (cdr lst) (+ cnt 1)))))
+
+;;; REVERSE
+;;; reverse a list
+;;;
+;;; lst: a list
+(define (reverse lst)
+	(let loop ((origin lst) (result '()))
+		(if (null? origin)
+			result
+			(loop (cdr lst) (cons (car lst) result)))))
+
+;;; MAP
+;;; for each element e in lst, invoke `(proc e)` and then gather the result
+;;; and return a new lst formed by the results
+;;;
+;;; proc - a procedure
+;;; lst  - a list
 (define (map proc lst)
 	(if (null? lst)
 		'()
@@ -8,7 +30,8 @@
           (map proc (cdr lst))))))
 
 ;;; FOR-EACH
-;;;
+;;; for each element e in lst, invoke `(proc e)` but never gather the result
+;;; this procedure always return `'()` cause it only care about the side-effect
 ;;;
 (define (for-each proc lst)
   (if (null? lst)

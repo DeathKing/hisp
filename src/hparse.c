@@ -8,11 +8,7 @@
 
 #define BUFFER_SIZE 120
 
-void exp_display(OBJECT);
-
-static OBJECT token;
-static HObject token;
-
+#define MAX_CNBIND_ENTRY    6
 #define MAX_CNBIND_NAMESIZE 30
 
 typedef struct hp_charname_binding HCharnameBinding;
@@ -22,24 +18,34 @@ struct hp_charname_binding {
     char binding;
 };
 
-static HCharnameBinding _cnbinding[] {
-    {"space",    ' '},
-    {"newline",  '\n'}
+/* Named Character Bindings */
+static HCharnameBinding _cnbinding[MAX_CNBIND_ENTRY] =  {
+    {"space",     ' '},
+    {"newline",   '\n'},
+    {"backspace", '\b'},
+    {"null",      '\0'},
+    {"bell",      '\a'},
+    {"quote",     '\''}
 }
 
-static inline int is_separator(int c)
-{
-    return (EOF == c || isspace(c) || c == '(' || c == ')'  || c == '"');
-}
+/* for tokenizor */
+static HObject token;
 
-/*
- * inner api
+/** ------------------------- FUNCTION ------------------------- **/
+
+/* is_delimiter [C API]
+ *
+ * check whether character c is a delimiter 
  */
 static inline int is_delimiter(int c)
 {
     return (isspace(c) || '(' == c || ')' == c || '"' == c || ';' == c);
 }
 
+/* is_special_initial [C API]
+ *
+ * check whether character c is a special initial for a id 
+ */
 static inline int is_special_initial(int c)
 {
     switch (c) {
@@ -53,25 +59,43 @@ static inline int is_special_initial(int c)
     }
 }
 
+/* is_special_subsequent [C API]
+ *
+ * check whether character c is a special subsequent for a id 
+ */
 static inline int is_special_subsequent(int c)
 {
     return ('+' == c || '-' == c || '.' == c || '@' == c);
 }
 
 
-
-OBJECT read_float(int integer, FILE *port)\
+/* read_float [C API]
+ *
+ * read the float part and then return with the integer part
+ */
+HObject read_float(long integer, int sign, FILE *port)
 {
-  int number = 0;
-  int digit, i = 1;
-  while (isdigit(digit = fgetc(port))) {
-    number = number * 10 + digit - '0';
-    i = i * 10;
-  }
-  ungetc(digit, port);
-  return float_new(integer + number * 1.0 / i);
+    int digit;
+    long cnt = 1;
+    long number = 0;
+    double absv;
+
+    while (isdigit(digit = fgetc(port))) {
+        number = number * 10 + digit - '0';
+        cnt = cnt * 10;
+    }
+
+    ungetc(digit, port);
+
+    absv = integer + number * 1.0 / cnt;
+
+    return float_new(absv * sign);
 }
 
+/* read_number [C API]
+ *
+ * read a number from
+ */
 HObject read_number(char c, int sign, FILE *port)
 {
     int  digit;
@@ -90,47 +114,59 @@ HObject read_number(char c, int sign, FILE *port)
          */
         return LONG2FIX(number * sign);
     } else if (digit == '.') {
-        return read_float(number * sign, port);
+        return read_float(number, sign, port);
     } else {
         /* FIXME: more specific error information. */
         return hp_error("Syntax error!");
     }
 }
 
+/* read_comment [C API]
+ *
+ * read and skip comment
+ */
 static inline void read_comment(FILE *port)
 {
-    int c = fgetc(port);
-
-    while (c != '\n' && c != EOF)
-        c = fgetc(port);
+    int c;
+    while ((c = fgetc(port)) != '\n' || c != EOF);
 }
 
-OBJECT read_character(FILE *port)
+/* read_string [C API]
+ *
+ * read_string reads strings from the input port
+ */
+#define HPARSE_RDSTR_BUFFSIZE 255
+HObject read_string(FILE *port)
 {
-  int c = fgetc(port);
-  switch (c) {
-    case '\\': {
-      int c = fgetc(port);
-      switch (c) {
-        case 'n': return char_new('\n');
-        case 'r': return char_new('\r');
-        case 't': return char_new('\t');
-        case 'f': return char_new('\f');
-        case 'b': return char_new('\b');
-        case 'v': return char_new('\v');
-        case 'a': return char_new('\a');
-        default :
-          fprintf(stderr, "unexpected token '%c' at line %d\n", c);
-          exit(1);
-      }
+    int c = fgetc(port), c2, i = 0;
+    char buffer[HPARSE_RDSTR_BUFFSIZE + 1];
+
+    while ((c = fgetc(port)) != EOF && c != '"') {
+
+        if (i == HPARSE_RDSTR_BUFFSIZE)
+            return hp_error(RUNTIME_ERROR, "Read string buffer overflowd.");
+
+        if (c == '\\') {
+            c2 = fgetc(port);
+            switch (c2) {
+                case 'n': c = '\n'; break;
+                case 'r': c = '\r'; break;
+                case 't': c = '\t'; break;
+                case 'f': c = '\f'; break;
+                case 'b': c = '\b'; break;
+                case 'v': c = '\v'; break;
+                case 'a': c = '\a'; break;
+                default :
+                    return hp_error(SYNTAX_ERROR, "Unkown string control char.");
+            }
+        }
+
+        buffer[i++] = c;
     }
-    case EOF:
-      fprintf(stderr, "unexpected end of file\n");
-      exit(1);
-      return Qfalse;
-    default :
-      return char_new(c);
-  }
+
+    buffer[i] = '\0';
+
+    return hp_new_string_n(buffer, i);
 }
 
 /* read and return a id */
@@ -151,34 +187,32 @@ OBJECT read_id(int c, FILE *port)
 }
 
 
-#define HPARSE_RDSTR_BUFFSIZE 128
 
-HObject read_string(FILE *port)
+#define HPARSE_RDCHAR_BUFFSIZE 31
+
+/*  read_character [C API]
+ *
+ *  read_character read a char directly or read a charname and then translate
+ *  it. charname bindings are defined in _cnbinding
+ */
+HObject read_character(FILE *port)
 {
-  char buffer[BUFFER_SIZE];
-  int  i = 0;
-  int  c1, c2 = fgetc(port);
+    char buffer[BUFFER_SIZE + 1];
+    int  i = 0, j;
+    int  c1, c2 = fgetc(port);
 
-  while (i < BUFFER_SIZE - 2 && c2 != EOF && c2 != '"') {
-    /* escape */
-    if (c2 == '\\') {
-        c1 = fgetc(port);
-        switch (c1) {
-            case '0': /* NULL String */
-            case 'n':
-            case 'r':
-            case 'b':
-            case '\\':
-            case '"':
+    /* read char to buffer */
+    while (i < BUFFER_SIZE && !is_delimiter(c2))
+        buffer[i++] = c2;
 
-        }
-    }
-    buffer[i++] = c2;
-    c2 = fgetc(port);
-  }
+    if (i == 1)
+        return hp_new_char(buffer[0]);
+    else
+        for (j = 0; j < MAX_CNBIND_ENTRY; j++)
+            if (strncmp(buffer, _cnbinding[j].name, MAX_CNBIND_NAMESIZE))
+                return hp_new_char(_cnbinding.bindind);
 
-  buffer[i + 1] = '\0';
-  return string_new(buffer);
+    return hp_error(SYNTAX_ERROR, "Ill-formed char or charname!");
 }
 
 #define SIGN_POSITIVE (1)
@@ -273,9 +307,9 @@ tail_loop:
             token = read_vector(port)
             return TVector;
         } else if (c1 == '\\') {
-            char kar = read_namechar(port);
+            char khar = read_character(port);
             /* alloc new char */
-            token = hp_new_char(kar);
+            token = hp_new_char(khar);
             return TCharacter; 
         } else {
             /* bad_thing_here */
@@ -294,9 +328,6 @@ tail_loop:
     }
 }
 
-
-#define HPARSE_STACKSIZE 64
-
 HObject parse(FILE *port)
 {
 
@@ -309,7 +340,7 @@ HObject parse(FILE *port)
 
 
     HToken tk;
-    HObject res = hp_new_pair(Qnull, Qnull);
+    HObject res = hp_new_null_pair();
     HObject tmp = res;
 
     /* if tk is atom, just return */
@@ -317,51 +348,51 @@ HObject parse(FILE *port)
         /* self-evaluate token it's it self */
         case TBool:   case TSymbol:    case TNumber:
         case TString: case TCharacter: case TIdentifier:
+            /* FIXME: a batter memory allocate system, or a GC */
+            /* free the alloc that nerver use */
+            HFREE(res);
             return token;
             break;
         case TEOF:
+            HFREE(res);
             return Qeof;
             break;
-    }
+        case TOpenParen:
 
-    /* process s-exp */
-    if (tk == TOpenParen) {
-
-        if ((tk = read_token(port)) == TCloseParen) {
-            return Qnull;
-        }
-
-        while (tk != TCloseParen) {
-
-            switch (tk) {
-                case TEOF:
-                    return hp_error(SYNTAX_ERROR, "Parenthesis unclosed.");
-                    break;
-                case TBool:   case TSymbol:    case TNumber:
-                case TString: case TCharacter: case TIdentifier:
-                    cnt++;
-                    HPAIR(tmp)->car = token;
-                    HPAIR(tmp)->cdr = hp_new_null_pair();
-                    tmp = HPAIR(tmp)->cdr;
-                    break;
-                case TDot:
-                    if (cnt > 0) {
-                        /* set cnt to a nagetive number to indicate there's
-                         * already a dotted value.
-                         */
-                        cnt = -0x0130450E;
-                        HPAIR(tmp)->cdr = token;
-                    } else {
-                        return hp_error(SYNTAX_ERROR, "Ill-formed dotted value.");
-                    }
-                    break;
+            if ((tk = read_token(port)) == TCloseParen) {
+                HFREE(res);
+                return Qnull;
             }
+
+            /* process untill meet a close parenthesis */
+            while (tk != TCloseParen) {
+                switch (tk) {
+                    case TEOF:
+                        return hp_error(SYNTAX_ERROR, "Parenthesis unclosed.");
+                        break;
+                    case TBool:   case TSymbol:    case TNumber:
+                    case TString: case TCharacter: case TIdentifier:
+                        cnt++;
+                        HPAIR(tmp)->car = token;
+                        HPAIR(tmp)->cdr = hp_new_null_pair();
+                        tmp = HPAIR(tmp)->cdr;
+                        break;
+                    case TDot:
+                        if (cnt > 0) {
+                            /* set cnt to a nagetive number to indicate there's
+                             * already a dotted value.
+                             */
+                            cnt = -0x0130450E;
+                            HPAIR(tmp)->cdr = token;
+                        } else {
+                            return hp_error(SYNTAX_ERROR, "Ill-formed dotted value.");
+                        }
+                        break;
+                }
+            }
+            break;
         }
-
-        /* meet a close paren. */
-        return res;
     }
-
 }
 
 /*
@@ -372,12 +403,6 @@ HObject parse(FILE *port)
  */
 HObject hp_read(HObject *port)
 {
-
-    /* stack cointer */
-    int sp = 0;
-
-
-    HObject tk_stack[HISP_TOKENSTACK_SIZE];
 
     /* FIXME: port readable check */
     if (!HPORT_P(port)) {

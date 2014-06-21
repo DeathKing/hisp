@@ -16,6 +16,11 @@ HObject hp_cons(HObject x, HObject y)
 	return (HObject)p; 
 }
 
+HObject hp_new_null_pair()
+{
+	return hp_cons(Qnull, Qnull);
+}
+
 HObject hp_car(HObject p)
 {
 	if (HPAIR_P(p))
@@ -72,88 +77,10 @@ HObject hp_is_pair(HObject p)
 
 HObject hp_is_null(HObject p)
 {
-	return p == Qnil
+	return p == Qnil ? Qtrue : Qfalse;
 }
 
-#define is_empty_list(v) (NIL_P(v))
-
-int list_length(HObject l)
+int list_length(HObject p)
 {
-	int c = 0;
-
-	while (!NIL_P(l)) {
-		c++;
-		l = cdr(l);
-	}
-
-	return c;
-}
-
-HObject list_ref(HObject l, int i)
-{
-	HObject temp = Qnil;
-
-	if (i >= list_length(l)) {
-		hp_error(RUNTIME_ERROR, "Overflowed!");
-		return Qundef;
-	}
-
-	while (i-- && l) {
-		temp = car(l);
-		l = cdr(l);
-	}
-
-	return temp;
-}
-
-#define L0(v) list_ref((v), 0)
-#define L1(v) list_ref((v), 1)
-#define L2(v) list_ref((v), 2)
-#define L3(v) list_ref((v), 3)
-#define L4(v) list_ref((v), 4)
-
-int tagged_list(HObject l, int tflag)
-{
-	if (is_pair(l))
-		return tflag == car(l);
-	else
-		return Qfalse;
-}
-
-int tagged_list_id(HObject l, char *id)
-{
-	if (is_pair(l) && is_id(car(l)))
-		return id_is(car(l), id);
-	else
-		return Qfalse;
-}
-
-int is_application(HObject exp)
-{
-	is_pair(exp);
-}
-
-HObject exp_operator(HObject exp)
-{
-	return car(exp);
-}
-
-HObject exp_operands(HObject exp)
-{
-	return cdr(exp);
-}
-
-HObject is_exp_no_operands(HObject exp)
-{
-	return is_empty_list(exp_operands(exp));
-}
-
-HObject require_args(HObject exp, int count)
-{
-	if (list_length(exp) >= count)
-		return Qtrue;
-	else {
-		hp_error(RUNTIME_ERROR, "Argument too few.");
-		return Qfalse;
-	}
+	
 }
