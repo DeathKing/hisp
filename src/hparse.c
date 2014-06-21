@@ -331,9 +331,7 @@ tail_loop:
 HObject parse(FILE *port)
 {
 
-    /* elements count before this token.
-     *
-     * a nagetive value indicate there's alreay a dotted value
+    /* a nagetive value indicate there's alreay a dotted value
      * any new dotted value are Ill-formed.
      */
     int cnt = 0;

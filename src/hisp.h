@@ -16,12 +16,12 @@
 #define HISP_DEV     HTRUE
 
 #if sizeof(unsigned long) == sizeof(void *)
-/* FIXME: HObject must be a machine word and platform free. */
-typedef unsigned long HObject;
+    /* FIXME: HObject must be a machine word and platform free. */
+    typedef unsigned long HObject;
 #elif sizeof(unsigned long long) == sizeof(void *)
-typedef unsigned long long HObject;
+    typedef unsigned long long HObject;
 #else
-#error "Cannot create basic HObject."
+#   error "Cannot create basic HObject."
 #endif
 
 struct hp_basic {
@@ -46,10 +46,65 @@ typedef struct hp_basic HBasic;
 enum hp_type {
 	TFixnum = 0x01
 };
+
 typedef enum hp_type HType;
 
 #define c2h_number(v) ((v)<<1 | TFixnum)
 #define h2c_number(v) ((v)>>1)
+
+/* Codes are stolen from ruby.h */
+#ifdef __STDC__
+# include <limits.h>
+#else
+# ifndef LONG_MAX
+#  ifdef HAVE_LIMITS_H
+#   include <limits.h>
+#  else
+    /* assuming 32bit(2's complement) long */
+#   define LONG_MAX 2147483647
+#  endif
+# endif
+# ifndef LONG_MIN
+#  define LONG_MIN (-LONG_MAX-1)
+# endif
+# ifndef CHAR_BIT
+#  define CHAR_BIT 8
+# endif
+#endif
+
+#ifdef HAVE_LONG_LONG
+# ifndef LLONG_MAX
+#  ifdef LONG_LONG_MAX
+#   define LLONG_MAX  LONG_LONG_MAX
+#  else
+#   ifdef _I64_MAX
+#    define LLONG_MAX _I64_MAX
+#   else
+    /* assuming 64bit(2's complement) long long */
+#    define LLONG_MAX 9223372036854775807LL
+#   endif
+#  endif
+# endif
+# ifndef LLONG_MIN
+#  ifdef LONG_LONG_MIN
+#   define LLONG_MIN  LONG_LONG_MIN
+#  else
+#   ifdef _I64_MIN
+#    define LLONG_MIN _I64_MIN
+#   else
+#    define LLONG_MIN (-LLONG_MAX-1)
+#   endif
+#  endif
+# endif
+#endif
+
+#define FIXNUM_MAX (LONG_MAX>>1)
+#define FIXNUM_MIN RSHIFT((long)LONG_MIN,1)
+
+#define INT2FIX(i) ((VALUE)(((SIGNED_VALUE)(i))<<1 | TFixnum))
+#define LONG2FIX(i) INT2FIX(i)
+
+
 
 #define HCOMPOUND_P(v) ((HOBJECT(v) & TFixnum) != 1)
 #define     HNULL_P(v) (HOBJECT(v) == Qnull)
