@@ -1,5 +1,6 @@
+![Hisp Bear](https://raw.githubusercontent.com/DeathKing/Hisp/dev/src/res/hisp2.png)
 
-> **WARNING!**
+> **WARNING!**  
 > This is a refactoring version of my final project of Software Development course, and it can not work until a β-version released.
 
 Hisp is a Scheme interpreter implemented by C, which meanwhile is also a **simple** copy of MIT-Scheme. The very idea to make such a implementation is to interpreter the code I worte in Scheme(especially mit-scheme) for [HIT Data Sturcture course](https://github.com/DeathKing/Hit-DataStructure-On-Scheme). But lexically, Hisp also can be considered as:
@@ -14,7 +15,7 @@ Our goal is to make Hisp totally follow the Revised^5 Report on the Algorithmic 
 
 # Features
 
-> **WARNING!**
+> **WARNING!**  
 > These features haven't finished yet.
 
 ## Default parameters
