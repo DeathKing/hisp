@@ -1,4 +1,8 @@
-Hisp is a Scheme interpreter implemented by C, which meanwhile is also a simple copy of MIT-Scheme. The very idea to make such a implementation is to interpreter the code I worte in Scheme(especially mit-scheme) for [HIT Data Sturcture course](https://github.com/DeathKing/Hit-DataStructure-On-Scheme). But lexically, Hisp also can be considered as:
+
+> **WARNING!**
+> This is a refactoring version of my final project of Software Development course, and it can not work until a β-version released.
+
+Hisp is a Scheme interpreter implemented by C, which meanwhile is also a **simple** copy of MIT-Scheme. The very idea to make such a implementation is to interpreter the code I worte in Scheme(especially mit-scheme) for [HIT Data Sturcture course](https://github.com/DeathKing/Hit-DataStructure-On-Scheme). But lexically, Hisp also can be considered as:
 
 + Hit mIt-Scheme inPlementation
 + Hit Iterator Symbolic Processor
@@ -39,7 +43,7 @@ Take it easy, guys, just `(and (fork) (send 'pull-request))`.
 
 # Credit & License
 
-My friend [_奥利奥有力量](http://weibo.com/u/1922805257) craft the lovely bear logo, which everyone can freely distrubite once you gave her a credit. 
+My friend [_奥利奥有力量](http://weibo.com/u/1922805257) crafted the lovely bear logo, which everyone can freely distrubite once you gave her a credit. 
 
 The whole Hisp project followed the MIT License and our lovely HIT License.
 
