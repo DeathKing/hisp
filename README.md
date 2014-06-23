@@ -37,6 +37,18 @@ Parameters with default value can be easily dealed with in Hisp by introduce `[]
 (plus 5)   ;---> 6
 (plus 5 2) ;---> 7
 ```
+# Reference
+
+There are some useful resources when building a compiler or interpreter, which I stolen lots of ideas from.
+
+1. Sussman G, Abelson H, Sussman J. Structure and interpretation of computer programs[J]. The Massachusetts Institute of Technology, 1985, 10.
+2. [Ruby Programming Language](https://github.com/ruby/ruby)
+3. Ruby Hacking Guide
+  1. [Japanese Version](http://loveruby.net/ja/rhg/)
+  2. [Chinese Version](http://axgle.github.io/rhg/)
+  3. [English Version](http://ruby-hacking-guide.github.io/)
+4. Pat Shaughnessy, Ruby Under a Microscope: An Illustrated Guide to Ruby Internals[M], No Starch Press, US, 2013, 11.
+5. [《Lua源码欣赏》, 云风](http://www.codingnow.com/temp/readinglua.pdf)
 
 # Contributing
 
