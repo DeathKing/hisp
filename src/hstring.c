@@ -1,5 +1,10 @@
 
 
+/* hp_new_string_n [C API]
+ *
+ * IMPORTANT:
+ *   though begins with `hp_`, this function is never be exposed to Hisp.
+ */
 HObject hp_new_string_n(char *str, int length)
 {
     int luxury = length / 2;
@@ -7,9 +12,24 @@ HObject hp_new_string_n(char *str, int length)
 
     memcpy(buf, str, length);
 
-    HString hstr = (HString *)malloc(sizeof(HString))
+    /* FIXME: alloc check */
+    HString hstr = (HString *)malloc(sizeof(HString));
+
     hstr->ptr = buf;
     hstr->holds = length + luxury;
     hstr->length = length - 1;
     
+    return (HObject)hstr;
+}
+
+/* hp_string_length
+ *
+ * counting a string length
+ */
+HObject hp_string_length(HObject str)
+{
+    if (HSTRING_P(str))
+        return INT2FIX(HSTRING(str)->length);
+    else
+        return hp_error(RUNTIME_ERROR, "Object str isn's a valid string");
 }

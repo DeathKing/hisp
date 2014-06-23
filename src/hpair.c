@@ -37,6 +37,9 @@ HObject hp_cdr(HObject p)
 		return hp_error(RUNTIME_ERROR, "HObject isn't a pair!");
 }
 
+#define CAR(p) (HPAIR(p)->car)
+#define CDR(p) (HPAIR(p)->cdr)
+
 #define caar(p) hp_car(hp_car(p))
 #define cadr(p) hp_car(hp_cdr(p))
 #define cdar(p) hp_cdr(hp_car(p))

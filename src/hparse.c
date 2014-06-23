@@ -170,7 +170,7 @@ HObject read_string(FILE *port)
 }
 
 /* read and return a id */
-OBJECT read_id(int c, FILE *port)
+HObject read_id(int c, FILE *port)
 {
     char buffer[BUFFER_SIZE] = {c};
     int i = 1;
@@ -186,14 +186,26 @@ OBJECT read_id(int c, FILE *port)
     return id_new(buffer);
 }
 
+/*
+ *
+ */
+#define RDVEC_BUFFSIZE 255
+HObject read_vector(int c, FILE *port)
+{
+    int count;
+    HObject value = parse(port);
+    HObject buf[RDVEC_BUFFSIZE]
+
+    return hp_new_vector_source_n(buf, count); 
+}
 
 
 #define HPARSE_RDCHAR_BUFFSIZE 31
 
-/*  read_character [C API]
+/* read_character [C API]
  *
- *  read_character read a char directly or read a charname and then translate
- *  it. charname bindings are defined in _cnbinding
+ * read_character read a char directly or read a charname and then translate
+ * it. charname bindings are defined in _cnbinding
  */
 HObject read_character(FILE *port)
 {
@@ -304,8 +316,7 @@ tail_loop:
 
         /* read vector */
         if (c1 == '(') {
-            token = read_vector(port)
-            return TVector;
+            return TOpenVector;
         } else if (c1 == '\\') {
             char khar = read_character(port);
             /* alloc new char */
@@ -355,6 +366,8 @@ HObject parse(FILE *port)
             HFREE(res);
             return Qeof;
             break;
+        case TOpenVector:
+            
         case TOpenParen:
 
             if ((tk = read_token(port)) == TCloseParen) {
