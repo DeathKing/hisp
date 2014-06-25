@@ -4,8 +4,15 @@
 
 #define HPAIR_P(p) (COMPOUND_P(p) && (TYPE(p) & T_PAIR))
 
+/*
+ * (cons 1 2)                      ---> (1 . 2)
+ * (cons (cons 1 2) 3)             ---> ((1 . 2) . 3)
+ * (cons 1 (cons 2 3))             ---> (1 2 . 3)
+ * (cons 1 (cons 2 (cons 3 '())))  ---> (1 2 3)
+ */
 HObject hp_cons(HObject x, HObject y)
 {
+	/* FIXME: custom malloc() system */
 	HPair *p = (HPair *)malloc(sizeof(HPair));
 
 	/* FIXME: alloc check */
@@ -13,14 +20,14 @@ HObject hp_cons(HObject x, HObject y)
 	p->car = x;
 	p->cdr = y;
 
-	return (HObject)p; 
+	return (HObject)p;
 }
 
-HObject hp_new_null_pair()
-{
-	return hp_cons(Qnull, Qnull);
-}
-
+/*
+ * (car (cons 1 2))  ---> 1
+ * (car '(1 . 2))    ---> 1
+ * (car '())         ---> Error
+ */
 HObject hp_car(HObject p)
 {
 	if (HPAIR_P(p))
@@ -37,8 +44,11 @@ HObject hp_cdr(HObject p)
 		return hp_error(RUNTIME_ERROR, "HObject isn't a pair!");
 }
 
-#define CAR(p) (HPAIR(p)->car)
-#define CDR(p) (HPAIR(p)->cdr)
+
+#define CAR(p)     (HPAIR(p)->car)
+#define CDR(p)     (HPAIR(p)->cdr)
+#define CONS(x, y) hp_cons((x), (y))
+#define NEW_PAIR() hp_cons(Qnull, Qnull)
 
 #define caar(p) hp_car(hp_car(p))
 #define cadr(p) hp_car(hp_cdr(p))
@@ -54,7 +64,13 @@ HObject hp_cdr(HObject p)
 #define cddar(p) hp_cdr(hp_cdr(hp_car(p)))
 #define cdddr(p) hp_cdr(hp_cdr(hp_cdr(p)))
 
-inline HObject hp_set_car(HObject p, HObject v)
+
+/*
+ * (define a (cons 3 4))  ---> a
+ * (set-car! a 5)         ---> Unspecified return value
+ * a                      ---> (5 . 4)
+ */
+inline HObject hp_set_car_bang(HObject p, HObject v)
 {
 	if (HPAIR_P(p))
 		return HPAIR(p)->car = v;
@@ -62,7 +78,12 @@ inline HObject hp_set_car(HObject p, HObject v)
 		return hp_error(RUNTIME_ERROR, "HObject isn't a pair!");
 }
 
-inline HObject hp_set_cdr(HObject p, HObject v)
+/*
+ * (define a (cons 3 4))  ---> a
+ * (set-cdr! a 5)         ---> Unspecified return value
+ * a                      ---> (3 . 5)
+ */
+inline HObject hp_set_cdr_bang(HObject p, HObject v)
 {
 	if (HPAIR_P(p))
 		return HPAIR(p)->cdr = v;
@@ -70,20 +91,35 @@ inline HObject hp_set_cdr(HObject p, HObject v)
 		return hp_error(RUNTIME_ERROR, "HObject isn't a pair!");
 }
 
-
-/* #define is_application(p) is_pair(p) */
-
-HObject hp_is_pair(HObject p)
+/*
+ * (pair? (cons 1 2)) ---> #t
+ * (pair? (list 1 2)) ---> #t
+ * (pair? '())        ---> #f
+ */
+inline HObject hp_pair_p(HObject p)
 {
 	return HPAIR_P(v) ? Qtrue : Qfalse;
 }
 
-HObject hp_is_null(HObject p)
+/*
+ * (null? '()) ---> #t
+ * (null? #f)  ---> #f
+ */
+inline HObject hp_null_p(HObject p)
 {
 	return p == Qnil ? Qtrue : Qfalse;
 }
 
-int list_length(HObject p)
+/* list_length [C API] 
+ *
+ * Counting length of a list
+ */
+int list_length(HPair *p)
 {
-	
+	int c = 1;
+
+	while ((p = p->cdr) != Qnull)
+		c++;
+
+	return c;
 }
