@@ -1,24 +1,47 @@
+#include "hisp.h"
+#include "hstring.h"
+
 
 /* hp_new_string_n [C API]
  *
+ * build new string from c string, must specific string length(exclude '\0')
+ * 
  * IMPORTANT:
  *   though begins with `hp_`, this function is never be exposed to Hisp.
  */
-HObject hp_new_string_n(char *str, int length)
+HObject hp_new_string_ncptr(char *str, int length)
 {
-    int luxury = length / 2;
-    char *buf = (char *)malloc(length + luxury);
-
-    memcpy(buf, str, length);
-
     /* FIXME: alloc check */
     HString hstr = (HString *)malloc(sizeof(HString));
+    hstr->length = length;
 
-    hstr->ptr = buf;
-    hstr->holds = length + luxury;
-    hstr->length = length - 1;
+    if (length > HP_MAX_STR_EMBSZ) {
+        /* too long to be a embedded string */
+        int luxury = length / 2;
+        char *buf = (char *)malloc(length + luxury);
+
+        /* never forger the '/0' */
+        memcpy(buf, str, length + 1);
+        
+        hstr->ptr = buf;
+        hstr->holds = length + luxury;
+    } else {
+        /* embedded string can embed to embstr field */
+        /* never forger the '/0' */
+        memcpy(hstr->embstr, str, length + 1);
+    }
     
     return (HObject)hstr;
+}
+
+/* hp_new_string_n [C API]
+ *
+ * build new string from c string, no need to specific string length
+ */
+HObject hp_new_string_cptr(char *str)
+{
+    int length = strlen(str);
+    return hp_new_string_ncptr(str, length);
 }
 
 /* hp_string_length

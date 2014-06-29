@@ -9,6 +9,9 @@
     Constant Definition
 */
 
+/* HFALSE and HTRUE are bool value used in C layer
+ * While Qfalse and Qtrue are bool value used in Hisp and C layer 
+ */
 #define HFALSE  0
 #define HTRUE   !HTRUE
 
@@ -24,11 +27,12 @@
 #   error "Cannot create basic HObject."
 #endif
 
+/* Common Header */
 struct hp_basic {
 	unsigned long type;
 };
-typedef struct hp_basic HBasic;
 
+typedef struct hp_basic HBasic;
 
 #define Qfalse ((HObject)0)
 #define Qtrue  ((HObject)2)
@@ -36,10 +40,11 @@ typedef struct hp_basic HBasic;
 #define Qundef ((HObject)6)
 #define Qeof   ((HObject)8)
 
-#define HBASIC(v)  ((HBasic *)(v)) 
-#define HOBJECT(v) ((HObject)(v))
+#define HCAST(t, v) ((t)(v))
+#define HBASIC(v)   HCAST(HBasic *, v) 
+#define HOBJECT(v)  HCAST(HObject, v)
 
-#define TYPE_MASK 0x00f
+#define TYPE_MASK 0xFF
 #define TYPE(v) ((HBASIC(v)->type) & TYPE_MASK)
 
 /* HISP type system */
@@ -48,9 +53,6 @@ enum hp_type {
 };
 
 typedef enum hp_type HType;
-
-#define c2h_number(v) ((v)<<1 | TFixnum)
-#define h2c_number(v) ((v)>>1)
 
 /* Codes are stolen from ruby.h */
 #ifdef __STDC__
@@ -104,8 +106,6 @@ typedef enum hp_type HType;
 #define INT2FIX(i) ((VALUE)(((SIGNED_VALUE)(i))<<1 | TFixnum))
 #define LONG2FIX(i) INT2FIX(i)
 
-
-
 #define HCOMPOUND_P(v) ((HOBJECT(v) & TFixnum) != 1)
 #define     HNULL_P(v) (HOBJECT(v) == Qnull)
 #define     HTRUE_P(v) (HOBJECT(v) == Qtrue)
@@ -117,5 +117,10 @@ typedef enum hp_type HType;
 /* bool test in C layer */
 #define HTEST(v) (((HObject)(v) & ~Qnull) != 0)
 
+/* memory free */
+#define HFREE(m) free(m)
+
+/* memory allocation */
+#define HMALLOC(sz) malloc(sz)
 
 #endif

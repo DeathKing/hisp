@@ -9,11 +9,18 @@ struct hp_char {
     char ch;
 };
 
+#define HP_MAX_STR_EMBSZ 15 
+
 struct hp_string {
     HBasic basic;
     int length;
-    int holds;
-    char *ptr;
+    union {
+        char embstr[HP_MAX_STR_EMBSZ + 1];
+        union {
+            int holds;
+            char *ptr;
+        };
+    }；
 };
 
 #endif

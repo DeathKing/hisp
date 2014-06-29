@@ -1,16 +1,7 @@
 #include "hisp.h"
 #include "number.h"
 
-OBJECT float_new(double val)
-{
-	HFLOAT *f = (HFLOAT *)malloc(sizeof(HFLOAT));
-	f->basic.type = T_HFLOAT;
-	f->value = val;
-
-	return (OBJECT)f;
-}
-
-HObject new_float(double val)
+HObject hp_new_float(double val)
 {
     HFLOAT *f = (HFloat *)malloc(sizeof(HFloa));
     f->basic.type = T_HFLOAT;
