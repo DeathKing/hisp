@@ -1,9 +1,13 @@
 #include "hisp.h"
 #include "number.h"
 
+/* hp_new_float [C API]
+ *
+ * build new Hisp float object from a double val
+ */
 HObject hp_new_float(double val)
 {
-    HFLOAT *f = (HFloat *)malloc(sizeof(HFloa));
+    HFLoat *f = (HFloat *)malloc(sizeof(HFloat));
     f->basic.type = T_HFLOAT;
     f->value = val;
 

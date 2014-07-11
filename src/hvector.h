@@ -5,7 +5,7 @@ typedef hp_vector HVector;
 
 struct hp_vector {
     HBasic basic;
-    int length;
+    long length;
     HObject *head;
 };
 

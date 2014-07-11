@@ -1,7 +1,6 @@
 #include "hisp.h"
 #include "hstring.h"
 
-
 /* hp_new_string_n [C API]
  *
  * build new string from c string, must specific string length(exclude '\0')
@@ -44,6 +43,8 @@ HObject hp_new_string_cptr(char *str)
     return hp_new_string_ncptr(str, length);
 }
 
+#define HSTRING_LENGTH(s) (HSTRING(s)->length)
+
 /* hp_string_length
  *
  * counting a string length
@@ -51,7 +52,7 @@ HObject hp_new_string_cptr(char *str)
 HObject hp_string_length(HObject str)
 {
     if (HSTRING_P(str))
-        return INT2FIX(HSTRING(str)->length);
+        return INT2FIX(HSTRING_LENGTH(str));
     else
         return hp_error(RUNTIME_ERROR, "Object str isn's a valid string");
 }

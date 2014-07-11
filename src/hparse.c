@@ -89,7 +89,7 @@ HObject read_float(long integer, int sign, FILE *port)
 
     absv = integer + number * 1.0 / cnt;
 
-    return float_new(absv * sign);
+    return hp_float_new(absv * sign);
 }
 
 /* read_number [C API]
@@ -348,7 +348,7 @@ HObject parse(FILE *port)
     int cnt = 0;
 
 
-    HToken tk;
+    HToken tk = read_token(port);
     HObject res = hp_new_null_pair();
     HObject tmp = res;
 

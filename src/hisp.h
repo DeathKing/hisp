@@ -5,10 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
-    Constant Definition
-*/
-
 /* HFALSE and HTRUE are bool value used in C layer
  * While Qfalse and Qtrue are bool value used in Hisp and C layer 
  */
@@ -19,17 +15,18 @@
 #define HISP_DEV     HTRUE
 
 #if sizeof(unsigned long) == sizeof(void *)
-    /* FIXME: HObject must be a machine word and platform free. */
+    /* FIXME: HObject must be one machine-word long and platform free. */
     typedef unsigned long HObject;
-#elif sizeof(unsigned long long) == sizeof(void *)
-    typedef unsigned long long HObject;
 #else
 #   error "Cannot create basic HObject."
 #endif
 
+typedef HObject ID;
+
 /* Common Header */
 struct hp_basic {
-	unsigned long type;
+    /* FIXME: flags should be 32bit at all platform */
+	int flags;
 };
 
 typedef struct hp_basic HBasic;
@@ -44,12 +41,13 @@ typedef struct hp_basic HBasic;
 #define HBASIC(v)   HCAST(HBasic *, v) 
 #define HOBJECT(v)  HCAST(HObject, v)
 
-#define TYPE_MASK 0xFF
-#define TYPE(v) ((HBASIC(v)->type) & TYPE_MASK)
+#define TYPE_MASK 0x00FF
+#define TYPE(v) ((HBASIC(v)->flags) & TYPE_MASK)
 
 /* HISP type system */
 enum hp_type {
-	TFixnum = 0x01
+	TFixnum = 0x01,
+    TSymbol = 0x0E
 };
 
 typedef enum hp_type HType;
@@ -100,11 +98,16 @@ typedef enum hp_type HType;
 # endif
 #endif
 
-#define FIXNUM_MAX (LONG_MAX>>1)
-#define FIXNUM_MIN RSHIFT((long)LONG_MIN,1)
+#define RSHIFT(x, b) ((x)>>(b))
 
-#define INT2FIX(i) ((VALUE)(((SIGNED_VALUE)(i))<<1 | TFixnum))
+#define FIXNUM_MAX (LONG_MAX>>1)
+#define FIXNUM_MIN RSHIFT((long)LONG_MIN, 1)
+
+#define INT2FIX(i) ((HObject)(((long)(i))<<1|TFixnum))
 #define LONG2FIX(i) INT2FIX(i)
+
+#define ID2SYM(x) ((HObject)(((long)(x))<<8|TSymbol))
+#define SYM2ID(x) RSHIFT((long)x, 8)
 
 #define HCOMPOUND_P(v) ((HOBJECT(v) & TFixnum) != 1)
 #define     HNULL_P(v) (HOBJECT(v) == Qnull)
