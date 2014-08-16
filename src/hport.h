@@ -1,7 +1,6 @@
 #ifndef _HISP_PORT_
 #define _HISP_PORT_
 
-/* introduce the FILE struct */
 #include <stdio.h>
 
 typedef struct hp_port HPort;

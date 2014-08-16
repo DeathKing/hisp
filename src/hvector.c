@@ -23,4 +23,3 @@ HObject hp_new_vector2(long k, HObject fill)
     return vec;
 }
 
-

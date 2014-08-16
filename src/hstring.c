@@ -1,6 +1,7 @@
 #include "hisp.h"
 #include "hstring.h"
 
+
 /* hp_new_string_n [C API]
  *
  * build new string from c string, must specific string length(exclude '\0')
@@ -8,13 +9,13 @@
  * IMPORTANT:
  *   though begins with `hp_`, this function is never be exposed to Hisp.
  */
-HObject hp_new_string_ncptr(char *str, int length)
+HObject hp_new_string_ncptr(const char *str, int length)
 {
     /* FIXME: alloc check */
     HString hstr = (HString *)malloc(sizeof(HString));
     hstr->length = length;
 
-    if (length > HP_MAX_STR_EMBSZ) {
+    if (length >= HP_MAX_STR_EMBSZ) {
         /* too long to be a embedded string */
         int luxury = length / 2;
         char *buf = (char *)malloc(length + luxury);

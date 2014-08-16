@@ -9,13 +9,14 @@ struct hp_char {
     char ch;
 };
 
-#define HP_MAX_STR_EMBSZ 15 
+
+#define HP_MAX_STR_EMBSZ (sizeof(char *) + sizeof(int))
 
 struct hp_string {
     HBasic basic;
     int length;
     union {
-        char embstr[HP_MAX_STR_EMBSZ + 1];
+        char embstr[HP_MAX_STR_EMBSZ];
         union {
             int holds;
             char *ptr;

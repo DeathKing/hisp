@@ -194,7 +194,7 @@ HObject read_vector(int c, FILE *port)
 {
     int count;
     HObject value = parse(port);
-    HObject buf[RDVEC_BUFFSIZE]
+    HObject buf[RDVEC_BUFFSIZE];
 
     return hp_new_vector_source_n(buf, count); 
 }
@@ -296,7 +296,7 @@ tail_loop:
         return TIdentifier;
     } else if ('#' == c) {
 
-        /* FIXME: #!defautl support (MIT-Scheme feature) */
+        /* FIXME: #!default support (MIT-Scheme feature) */
 
         int c1 = fgetc(port);
         int c2 = fgetc(port);
