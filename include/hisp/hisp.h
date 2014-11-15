@@ -9,7 +9,7 @@
  * While Qfalse and Qtrue are bool value used in Hisp and C layer 
  */
 #define HFALSE  0
-#define HTRUE   !HTRUE
+#define HTRUE   1
 
 #define HISP_VERSION "0.0.1"
 #define HISP_DEV     HTRUE
@@ -31,15 +31,15 @@ struct hp_basic {
 
 typedef struct hp_basic HBasic;
 
-#define Qfalse ((HObject)0)
-#define Qtrue  ((HObject)2)
-#define Qnull  ((HObject)4)
-#define Qundef ((HObject)6)
-#define Qeof   ((HObject)8)
-
 #define HCAST(t, v) ((t)(v))
 #define HBASIC(v)   HCAST(HBasic *, v) 
 #define HOBJECT(v)  HCAST(HObject, v)
+
+#define Qfalse HOBJECT(0)
+#define Qtrue  HOBJECT(2)
+#define Qnull  HOBJECT(4)
+#define Qundef HOBJECT(6)
+#define Qeof   HOBJECT(8)
 
 #define TYPE_MASK 0x00FF
 #define TYPE(v) ((HBASIC(v)->flags) & TYPE_MASK)

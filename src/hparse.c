@@ -1,10 +1,8 @@
 #include "hisp.h"
 
-#include "hlex.h"
-
-#include "pair.h"
-#include "id.h"
-#include "number.h"
+#include "hpair.h"
+#include "hstring.h"
+#include "hnumber.h"
 
 #define BUFFER_SIZE 120
 
@@ -349,7 +347,7 @@ HObject parse(FILE *port)
 
 
     HToken tk = read_token(port);
-    HObject res = hp_new_null_pair();
+    HObject res = NEW_PAIR;
     HObject tmp = res;
 
     /* if tk is atom, just return */

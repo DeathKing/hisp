@@ -5,3 +5,5 @@
 (assert-should-equall #b100      4)
 (assert-should-equall #b101      5)
 (assert-should-equall #b110      6)
+(assert-should-equall #b111		 7)
+(assert-should-equall #b1000     8)
