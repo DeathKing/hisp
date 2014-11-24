@@ -1,8 +1,12 @@
-#include "hisp.h"
+#include <string.h>
 
-#include "hpair.h"
-#include "hstring.h"
-#include "hnumber.h"
+#include <hisp.h>
+
+#include <hpair.h>
+#include <hstring.h>
+#include <hnumber.h>
+
+#include <cutils/open_memstream.h>
 
 #define BUFFER_SIZE 120
 
@@ -147,14 +151,16 @@ HObject read_string(FILE *port)
         if (c == '\\') {
             c2 = fgetc(port);
             switch (c2) {
-                case 'n': c = '\n'; break;
-                case 'r': c = '\r'; break;
-                case 't': c = '\t'; break;
-                case 'f': c = '\f'; break;
-                case 'b': c = '\b'; break;
-                case 'v': c = '\v'; break;
-                case 'a': c = '\a'; break;
-                default :
+                case '"' : c = '"' ; break;
+                case 'n' : c = '\n'; break;
+                case 'r' : c = '\r'; break;
+                case 't' : c = '\t'; break;
+                case 'f' : c = '\f'; break;
+                case 'b' : c = '\b'; break;
+                case 'v' : c = '\v'; break;
+                case 'a' : c = '\a'; break;
+                case '\\': c = '\\'; break;
+                default  :
                     return hp_error(SYNTAX_ERROR, "Unkown string control char.");
             }
         }
@@ -241,7 +247,6 @@ HToken read_token(FILE *port)
 
 tail_loop:
 
-    /* FIXME: This function can deal with non-stream variable also. */
     c = fgetc(port);
 
     if (EOF == c) {
@@ -337,6 +342,9 @@ tail_loop:
     }
 }
 
+/*
+ * Hisp use a REPL: Read-Evalute-Print-Loop
+ */
 HObject parse(FILE *port)
 {
 
@@ -422,6 +430,13 @@ HObject hp_read(HObject *port)
     FILE *cptr = HPORT(port)->cptr;
 
     return parse(cptr);
+}
+
+
+HObject read_string(char **str)
+{
+    FILE *port = open_memstream(str, strlen(str));
+    return parse(port);
 }
 
 

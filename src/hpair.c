@@ -1,6 +1,6 @@
-#include "hisp.h"
-#include "hpair.h"
-#include "herror.h"
+#include <hisp.h>
+#include <hpair.h>
+#include <herror.h>
 
 #define HPAIR_P(p) (COMPOUND_P(p) && (TYPE(p) & T_PAIR))
 
