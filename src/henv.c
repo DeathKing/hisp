@@ -14,19 +14,22 @@ void add_binding()
 
 }
 
-HObject get_binding()
+HObject hp_set_binding(HSymbol id, HObject value, HEnv env)
 {
 }
 
 HObject hp_find_binding(HSymbol id, HEnv env)
 {
-    
+
 }
  
-void make_frame()
-{}
+HEnv *hp_make_frame()
+{
 
-void make_env()
+
+}
+
+HEnv *make_env()
 {
 }
 
